@@ -190,25 +190,6 @@ export function SettingsScreen() {
             </View>
           </View>
 
-          {/* About */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>ℹ️ Hakkında</Text>
-            <View style={styles.card}>
-              <View style={styles.aboutRow}>
-                <Text style={styles.aboutEmoji}>💜</Text>
-                <View style={styles.aboutText}>
-                  <Text style={styles.label}>Hatır Gönül</Text>
-                  <Text style={styles.hint}>
-                    Yapay zeka destekli duygusal destek asistanı
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.divider} />
-              <Text style={styles.aboutInfo}>
-                Gemini AI kullanılarak geliştirildi. Verilerini yalnızca kendi cihazında saklar.
-              </Text>
-            </View>
-          </View>
 
           {/* Danger Zone */}
           <View style={styles.section}>
@@ -343,18 +324,6 @@ const styles = StyleSheet.create({
     color: Colors.primaryLight,
     fontWeight: '600',
     fontSize: 14,
-  },
-  aboutRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  aboutEmoji: { fontSize: 32 },
-  aboutText: { flex: 1 },
-  aboutInfo: {
-    color: Colors.textMuted,
-    fontSize: 13,
-    lineHeight: 20,
   },
   dangerBtn: {
     backgroundColor: 'rgba(225,112,85,0.15)',
