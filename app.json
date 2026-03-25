@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Hatır Gönül",
+    "slug": "hatirgonul",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hatirgonul.app",
+      "infoPlist": {
+        "UIBackgroundModes": ["fetch", "remote-notification"]
+      }
+    },
+    "android": {
+      "package": "com.hatirgonul.app",
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM",
+        "POST_NOTIFICATIONS",
+        "VIBRATE"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "color": "#6C5CE7",
+          "sounds": []
+        }
+      ]
+    ],
+    "sdkVersion": "54.0.0"
+  }
+}
