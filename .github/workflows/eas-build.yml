@@ -17,33 +17,27 @@ jobs:
         with:
           node-version: 18
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Setup Expo
+      - name: Setup Expo CLI
         uses: expo/expo-github-action@v8
         with:
           expo-version: latest
           eas-version: latest
 
-      - name: Authenticate with Expo
-        run: eas login --non-interactive
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build APK with EAS
+        run: eas build --platform android --non-interactive --wait
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Build APK
-        run: eas build --platform android --non-interactive
+      - name: Download APK
+        run: eas build:list --platform android --limit 1 --status finished
 
-      - name: Prepare Release Artifacts
-        if: success()
-        run: |
-          mkdir -p dist
-          cp ./dist/**/*.apk ./dist/ 2>/dev/null || true
-
-      - name: Upload to Release
-        if: success()
+      - name: Upload Release
         uses: softprops/action-gh-release@v1
         with:
-          files: dist/**/*.apk
+          files: |
+            *.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
