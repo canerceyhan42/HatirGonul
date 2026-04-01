@@ -15,7 +15,7 @@ interface MoodSelectorProps {
   selectedScore?: number;
 }
 
-// Fixed: hooks must not be called inside .map(). We declare them correctly now.
+// Düzeltme: Hooklar .map() içinde çağrılamaz. Şimdi doğru şekilde tanımladık.
 export function MoodSelector({ onSelect, selectedScore }: MoodSelectorProps) {
   const scales = useRef(MOODS.map(() => new Animated.Value(1))).current;
 

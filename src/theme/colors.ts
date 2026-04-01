@@ -66,12 +66,3 @@ export const BorderRadius = {
   xl: 32,
   full: 999,
 };
-
-export const Typography = {
-  h1: { fontSize: 28, fontWeight: '700' as const, color: '#FFFFFF' },
-  h2: { fontSize: 22, fontWeight: '600' as const, color: '#FFFFFF' },
-  h3: { fontSize: 18, fontWeight: '600' as const, color: '#FFFFFF' },
-  body: { fontSize: 15, fontWeight: '400' as const, color: '#FFFFFF' },
-  caption: { fontSize: 12, fontWeight: '400' as const, color: '#B2BEFF' },
-  small: { fontSize: 11, fontWeight: '400' as const, color: '#6B7FCC' },
-};

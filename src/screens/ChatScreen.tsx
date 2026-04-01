@@ -9,7 +9,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Animated,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -32,7 +31,6 @@ export function ChatScreen() {
   const [userName, setUserName] = useState('');
   const flatListRef = useRef<FlatList>(null);
   const inputRef = useRef<TextInput>(null);
-  const headerOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     loadData();
@@ -68,12 +66,6 @@ export function ChatScreen() {
     // Get AI greeting based on mood
     setIsTyping(true);
     setPhase('chat');
-
-    Animated.timing(headerOpacity, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
 
     try {
       const greeting = await analyzeMood(score);
@@ -281,16 +273,6 @@ const styles = StyleSheet.create({
   },
   avatarContainer: {
     position: 'relative',
-  },
-  avatarCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.bgCard,
-    borderWidth: 2,
-    borderColor: Colors.primaryLight,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   avatarText: {
     fontSize: 24,

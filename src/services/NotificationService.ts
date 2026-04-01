@@ -29,7 +29,7 @@ const GREETING_MESSAGES = [
 
 export async function requestNotificationPermissions(): Promise<boolean> {
   if (!Device.isDevice) {
-    console.log('Notifications only work on physical devices');
+    console.log('Bildirimler sadece fiziksel cihazlarda çalışır');
     return false;
   }
 
@@ -63,9 +63,23 @@ export async function scheduleDailyNotifications(
   await Notifications.cancelAllScheduledNotificationsAsync();
 
   for (let i = 0; i < times.length; i++) {
-    const [hourStr, minuteStr] = times[i].split(':');
-    const hour = parseInt(hourStr, 10);
-    const minute = parseInt(minuteStr, 10);
+    let timeStr = times[i];
+    // Kullanıcı : yerine . girerse düzeltelim
+    if (timeStr.includes('.')) {
+      timeStr = timeStr.replace('.', ':');
+    }
+
+    const parts = timeStr.split(':');
+    let hour = parseInt(parts[0], 10);
+    let minute = parts.length > 1 ? parseInt(parts[1], 10) : 0;
+
+    if (Number.isNaN(hour)) hour = 9;
+    if (Number.isNaN(minute)) minute = 0;
+
+    // Saatleri 0-23, dakikaları 0-59 aralığında tutalim
+    hour = Math.max(0, Math.min(23, hour));
+    minute = Math.max(0, Math.min(59, minute));
+
     const msg = GREETING_MESSAGES[i] || GREETING_MESSAGES[0];
 
     await Notifications.scheduleNotificationAsync({

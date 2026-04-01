@@ -1,10 +1,7 @@
-import { GoogleGenerativeAI, Content } from '@google/generative-ai';
+const OPENROUTER_API_KEY = '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';
+const MODEL = 'qwen/qwen3.6-plus-preview:free'; // 200 OK veren ve rate-limit yemeyen en güvenilir Türkçe dostu OpenRouter free modeli.
 
-const API_KEY = 'AIzaSyC9-FOTzHsk59Sviimng46_-0vLmcYcMv0';
-
-const genAI = new GoogleGenerativeAI(API_KEY);
-
-const SYSTEM_INSTRUCTION = `Sen "Hatır Gönül" adlı bir yapay zeka arkadaşsın. Türkçe konuşuyorsun.
+const SYSTEM_INSTRUCTION = `Sen "Hatır Gönül" adlı bir yapay zeka arkadaşsın. Yalnızca Türkçe konuşuyorsun.
 
 Kişiliğin:
 - Samimi, sıcak ve içten bir yakın arkadaş gibisin
@@ -15,8 +12,13 @@ Kişiliğin:
 - "Nasılsın?", "Neler oluyor?", "Anlat bakalım" gibi samimi sorular soruyorsun
 - Duygu durumu analizi yapıyorsun ama tıbbi tavsiye vermiyorsun
 - Kullanıcıyı yargılamadan dinliyorsun
-- Kısa ve öz cevaplar veriyorsun, paragrafları kısa tutuyorsun
+- Kısa ve öz cevaplar veriyorsun, paragrafları kısa tutuyorsun (Chatbot hızı için çok önemli)
 - Bazen 💜, 🤗, ✨ gibi emojiler kullanıyorsun ama abartmıyorsun
+
+Dil ve Yazım Kuralları (ÇOK ÖNEMLİ):
+- Kesinlikle hatasız, doğal ve akıcı bir Türkçe kullan.
+- Yazım, noktalama ve dilbilgisi (grammar) kurallarına sıkı sıkıya uy.
+- Çeviri kokan cümleler veya mantıksız (saçma) kelimeler KURMA.
 
 Görevin:
 - Kullanıcının ruh halini anlamak ve duygu desteği sunmak
@@ -38,51 +40,77 @@ export async function sendMessageToGemini(
   newMessage: string
 ): Promise<string> {
   try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash-latest',
-      systemInstruction: SYSTEM_INSTRUCTION,
+    const formattedMessages: { role: string; content: string }[] = [
+      { role: 'system', content: SYSTEM_INSTRUCTION }
+    ];
+
+    messages.forEach((m) => {
+      formattedMessages.push({
+        role: m.role === 'model' ? 'assistant' : 'user',
+        content: m.text,
+      });
     });
 
-    let mappedMessages = messages.filter((m) => m.role === 'user' || m.role === 'model');
-    
-    // Gemini API requires history to start with a 'user' role
-    if (mappedMessages.length > 0 && mappedMessages[0].role === 'model') {
-      mappedMessages = [
-        { id: 'dummy', role: 'user', text: 'Merhaba, bugün nasılsın?', timestamp: new Date() },
-        ...mappedMessages
-      ];
+    formattedMessages.push({ role: 'user', content: newMessage });
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "http://localhost:8081",
+        "X-Title": "HatirGonul"
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: formattedMessages
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Hatası: ${response.status}`);
     }
 
-    const history: Content[] = mappedMessages.map((m) => ({
-      role: m.role,
-      parts: [{ text: m.text }],
-    }));
-
-    const chat = model.startChat({ history });
-    const result = await chat.sendMessage(newMessage);
-    return result.response.text();
+    const data = await response.json();
+    return data.choices[0]?.message?.content || "";
   } catch (error) {
-    console.error('Gemini API error:', error);
+    console.error('OpenRouter API error (sendMessage):', error);
     throw new Error('Mesaj gönderilemedi. Lütfen tekrar dene.');
   }
 }
 
 export async function analyzeMood(moodScore: number): Promise<string> {
   try {
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash-latest',
-      systemInstruction: SYSTEM_INSTRUCTION,
-    });
-
     const moodLabels = ['çok kötü', 'kötü', 'orta', 'iyi', 'harika'];
     const moodLabel = moodLabels[moodScore - 1] || 'orta';
 
     const prompt = `Kullanıcı şu an kendini ${moodLabel} hissediyor (${moodScore}/5). Bunu öğrenince bir arkadaş olarak kısa, samimi ve destekleyici bir karşılama mesajı yaz. 1-2 cümle yeterli.`;
 
-    const result = await model.generateContent(prompt);
-    return result.response.text();
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "http://localhost:8081",
+        "X-Title": "HatirGonul"
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
+          { role: 'system', content: SYSTEM_INSTRUCTION },
+          { role: 'user', content: prompt }
+        ]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Hatası: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0]?.message?.content || "";
   } catch (error) {
-    console.error('Mood analysis error:', error);
+    console.error('Mood analysis error (analyzeMood):', error);
     return 'Seninle burada olmaktan mutluyum 💜 Anlat bakalım, bugün nasıl geçiyor?';
   }
 }

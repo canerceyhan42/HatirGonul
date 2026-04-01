@@ -9,7 +9,10 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.hatirgonul.app",
       "infoPlist": {
-        "UIBackgroundModes": ["fetch", "remote-notification"]
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -30,6 +33,11 @@
         }
       ]
     ],
-    "sdkVersion": "54.0.0"
+    "sdkVersion": "54.0.0",
+    "extra": {
+      "eas": {
+        "projectId": "38f5bd85-7874-4e6f-86b9-920ab3be3e9d"
+      }
+    }
   }
 }
