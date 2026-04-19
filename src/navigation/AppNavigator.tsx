@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text, View } from 'react-native';
+import { HomeScreen } from '../screens/HomeScreen';
 import { ChatScreen } from '../screens/ChatScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
@@ -38,6 +39,16 @@ export function AppNavigator() {
         },
       }}
     >
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          tabBarLabel: 'Ana Sayfa',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon emoji="🏠" focused={focused} />
+          ),
+        }}
+      />
       <Tab.Screen
         name="Chat"
         component={ChatScreen}

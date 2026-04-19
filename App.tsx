@@ -5,10 +5,10 @@ import { StatusBar } from 'expo-status-bar';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import {
   requestNotificationPermissions,
-  scheduleDailyNotifications,
+  scheduleRandomNotifications,
   addNotificationResponseListener,
 } from './src/services/NotificationService';
-import { getNotificationTimes } from './src/services/StorageService';
+import { getNotificationEnabled } from './src/services/StorageService';
 
 export default function App() {
   const navigationRef = useRef<any>(null);
@@ -25,10 +25,11 @@ export default function App() {
   }, []);
 
   const setupNotifications = async () => {
+    const enabled = await getNotificationEnabled();
+    if (!enabled) return; // kullanıcı bildirimleri kapattıysa planlama
     const granted = await requestNotificationPermissions();
     if (granted) {
-      const times = await getNotificationTimes();
-      await scheduleDailyNotifications(times);
+      await scheduleRandomNotifications(); // 14 günlük rastgele planlama
     }
   };
 

@@ -15,6 +15,7 @@ const KEYS = {
   MOOD_HISTORY: 'mood_history',
   USER_NAME: 'user_name',
   NOTIFICATION_TIMES: 'notification_times',
+  NOTIFICATION_ENABLED: 'notification_enabled',
 };
 
 export async function saveChatHistory(messages: Message[]): Promise<void> {
@@ -83,11 +84,22 @@ export async function getNotificationTimes(): Promise<string[]> {
   return JSON.parse(data);
 }
 
+export async function saveNotificationEnabled(enabled: boolean): Promise<void> {
+  await AsyncStorage.setItem(KEYS.NOTIFICATION_ENABLED, JSON.stringify(enabled));
+}
+
+export async function getNotificationEnabled(): Promise<boolean> {
+  const data = await AsyncStorage.getItem(KEYS.NOTIFICATION_ENABLED);
+  if (data === null) return true; // varsayılan: açık
+  return JSON.parse(data);
+}
+
 export async function clearAllData(): Promise<void> {
   await AsyncStorage.multiRemove([
     KEYS.CHAT_HISTORY,
     KEYS.MOOD_HISTORY,
     KEYS.USER_NAME,
     KEYS.NOTIFICATION_TIMES,
+    KEYS.NOTIFICATION_ENABLED,
   ]);
 }

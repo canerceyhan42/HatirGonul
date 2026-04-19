@@ -1,32 +1,23 @@
-const OPENROUTER_API_KEY = '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';
-const MODEL = 'qwen/qwen3.6-plus-preview:free'; // 200 OK veren ve rate-limit yemeyen en güvenilir Türkçe dostu OpenRouter free modeli.
+const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY || '';
+const MODEL = 'llama-3.3-70b-versatile';
 
-const SYSTEM_INSTRUCTION = `Sen "Hatır Gönül" adlı bir yapay zeka arkadaşsın. Yalnızca Türkçe konuşuyorsun.
+const SYSTEM_INSTRUCTION = `Sen "Hatır Gönül" adlı bir sanal arkadaşsın ve %100 Türkçe konuşuyorsun.
 
 Kişiliğin:
-- Samimi, sıcak ve içten bir yakın arkadaş gibisin
-- Asla robot gibi davranmıyorsun; gerçekten önemsiyorsun
-- Empati kuruyorsun ve duygulara duyarlısın
-- Bazen ufak espiriler yapıyorsun ama asla alay etmiyorsun
-- Kullanıcının ismini bilirseniz kullanıyorsun
-- "Nasılsın?", "Neler oluyor?", "Anlat bakalım" gibi samimi sorular soruyorsun
-- Duygu durumu analizi yapıyorsun ama tıbbi tavsiye vermiyorsun
-- Kullanıcıyı yargılamadan dinliyorsun
-- Kısa ve öz cevaplar veriyorsun, paragrafları kısa tutuyorsun (Chatbot hızı için çok önemli)
-- Bazen 💜, 🤗, ✨ gibi emojiler kullanıyorsun ama abartmıyorsun
+- Samimi, sıcak ve empati dolu bir dostsun.
+- Robot gibi değil, insani bir doğallıkla, yargılamadan dinlersin.
+- Kullanıcının duygu durumuna (örneğin kötü hissediyorsa ona şefkatle yaklaşarak) uyum sağlarsın.
+- Mesajlarını her zaman kısa, net ve sohbete teşvik edici şekilde tutarsın. (Uzun paragraflardan kaçın)
 
-Dil ve Yazım Kuralları (ÇOK ÖNEMLİ):
-- Kesinlikle hatasız, doğal ve akıcı bir Türkçe kullan.
-- Yazım, noktalama ve dilbilgisi (grammar) kurallarına sıkı sıkıya uy.
-- Çeviri kokan cümleler veya mantıksız (saçma) kelimeler KURMA.
+Dil, Yazım ve Güvenlik Kuralları (HAYATİ DERECEDE ÖNEMLİ!):
+1. **ASLA İNGİLİZCE VEYA BAŞKA BİR DİL KULLANMA:** Cümlelerinin arasına "sometimes", "together", "anyway" gibi yabancı kelimeler veya harfler KARIŞTIRMA.
+2. SADECE kusursuz, gündelik ve doğal **TÜRKÇE** kelimeler kullan. 
+3. Çeviri kokan yapay cümleler (Örn: "Biraz sessizlik desometimes iyi gelir") veya uydurma kelimeler YAZMA. 
+4. Kesinlikle başka bir dilden kelime veya deyim kopyalama, sistemin %100 Türkçe algoritmalarla çalışmalıdır.
+5. Kullanıcı farklı bir dil kullansa bile sen her zaman Türkçe cevap vermelisin.
 
 Görevin:
-- Kullanıcının ruh halini anlamak ve duygu desteği sunmak
-- Günlük stresi, kaygıları, mutlulukları birlikte değerlendirmek
-- Gerektiğinde küçük önerilerde bulunmak (nefes egzersizi, kısa yürüyüş vb.)
-- Kullanıcının kendini iyi hissetmesine yardımcı olmak
-
-Unutma: Sen bir arkadaşsın, bir terapist değil. Samimi ve doğal konuş.`;
+- Karşındakine yalnız olmadığını hissettir. Gerektiğinde küçük, yapıcı öneriler (kısa bir nefes al, su iç vs.) sun ve onunla içten bir şekilde ilgilen.`;
 
 export interface Message {
   id: string;
@@ -35,13 +26,45 @@ export interface Message {
   timestamp: Date;
 }
 
+async function callGroq(messages: { role: string; content: string }[]): Promise<string> {
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${GROQ_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      messages,
+      temperature: 0.7,
+      max_tokens: 512,
+    }),
+  });
+
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => '');
+    console.error(`Groq API Hatası ${response.status}:`, errBody);
+    throw new Error(`API Hatası: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error('Boş yanıt alındı');
+  return content;
+}
+
 export async function sendMessageToGemini(
   messages: Message[],
-  newMessage: string
+  newMessage: string,
+  userName?: string
 ): Promise<string> {
   try {
+    const dynamicSystemInstruction = userName 
+      ? SYSTEM_INSTRUCTION + `\nUnutma, Karşındakinin adı: ${userName}. Ona ismiyle hitap et.`
+      : SYSTEM_INSTRUCTION;
+
     const formattedMessages: { role: string; content: string }[] = [
-      { role: 'system', content: SYSTEM_INSTRUCTION }
+      { role: 'system', content: dynamicSystemInstruction },
     ];
 
     messages.forEach((m) => {
@@ -53,64 +76,34 @@ export async function sendMessageToGemini(
 
     formattedMessages.push({ role: 'user', content: newMessage });
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "http://localhost:8081",
-        "X-Title": "HatirGonul"
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: formattedMessages
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`API Hatası: ${response.status}`);
+    return await callGroq(formattedMessages);
+  } catch (error: any) {
+    console.error('Groq API error (sendMessage):', error);
+    if (
+      error?.message?.includes('Network request failed') ||
+      error?.message?.includes('fetch')
+    ) {
+      throw new Error('İnternet bağlantısı yok. Lütfen bağlantını kontrol et.');
     }
-
-    const data = await response.json();
-    return data.choices[0]?.message?.content || "";
-  } catch (error) {
-    console.error('OpenRouter API error (sendMessage):', error);
     throw new Error('Mesaj gönderilemedi. Lütfen tekrar dene.');
   }
 }
 
-export async function analyzeMood(moodScore: number): Promise<string> {
+export async function analyzeMood(moodScore: number, userName?: string): Promise<string> {
   try {
     const moodLabels = ['çok kötü', 'kötü', 'orta', 'iyi', 'harika'];
     const moodLabel = moodLabels[moodScore - 1] || 'orta';
 
-    const prompt = `Kullanıcı şu an kendini ${moodLabel} hissediyor (${moodScore}/5). Bunu öğrenince bir arkadaş olarak kısa, samimi ve destekleyici bir karşılama mesajı yaz. 1-2 cümle yeterli.`;
+    const prompt = `Kullanıcı şu an kendini ${moodLabel} hissediyor (${moodScore}/5). Sıcak bir selamlama yap.`;
+    const dynamicSystemInstruction = userName 
+      ? SYSTEM_INSTRUCTION + `\nUnutma, Karşındakinin adı: ${userName}. Karşılama mesajında ismini kullan.`
+      : SYSTEM_INSTRUCTION;
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "http://localhost:8081",
-        "X-Title": "HatirGonul"
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        messages: [
-          { role: 'system', content: SYSTEM_INSTRUCTION },
-          { role: 'user', content: prompt }
-        ]
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`API Hatası: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.choices[0]?.message?.content || "";
+    return await callGroq([
+      { role: 'system', content: dynamicSystemInstruction },
+      { role: 'user', content: prompt },
+    ]);
   } catch (error) {
-    console.error('Mood analysis error (analyzeMood):', error);
     return 'Seninle burada olmaktan mutluyum 💜 Anlat bakalım, bugün nasıl geçiyor?';
   }
 }

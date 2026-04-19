@@ -57,44 +57,52 @@ export async function requestNotificationPermissions(): Promise<boolean> {
   return true;
 }
 
-export async function scheduleDailyNotifications(
-  times: string[] = ['09:00', '13:00', '19:00']
+export async function scheduleRandomNotifications(
+  daysAhead: number = 14
 ): Promise<void> {
   await Notifications.cancelAllScheduledNotificationsAsync();
 
-  for (let i = 0; i < times.length; i++) {
-    let timeStr = times[i];
-    // Kullanıcı : yerine . girerse düzeltelim
-    if (timeStr.includes('.')) {
-      timeStr = timeStr.replace('.', ':');
+  const now = new Date();
+
+  // Her gün için 3 aralık belirleyelim.
+  // 1: Sabah (09:00 - 12:00)
+  // 2: Öğle (13:00 - 17:00)
+  // 3: Akşam (18:00 - 21:00)
+  for (let i = 0; i < daysAhead; i++) {
+    const baseDate = new Date(now);
+    baseDate.setDate(now.getDate() + i);
+
+    const timeRanges = [
+      { startHour: 9, endHour: 11, msgIndex: 0 },
+      { startHour: 13, endHour: 16, msgIndex: 1 },
+      { startHour: 18, endHour: 20, msgIndex: 2 },
+    ];
+
+    for (const range of timeRanges) {
+      const randomHour = Math.floor(Math.random() * (range.endHour - range.startHour + 1)) + range.startHour;
+      const randomMinute = Math.floor(Math.random() * 60);
+
+      const triggerDate = new Date(baseDate);
+      triggerDate.setHours(randomHour, randomMinute, 0, 0);
+
+      // Geçmiş zamana bildirim kurmamak için kontrol ediyoruz.
+      if (triggerDate.getTime() > now.getTime()) {
+        const msg = GREETING_MESSAGES[range.msgIndex];
+
+        await Notifications.scheduleNotificationAsync({
+          content: {
+            title: msg.title,
+            body: msg.body,
+            data: { screen: 'Chat' },
+            sound: true,
+          },
+          trigger: { 
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            date: triggerDate 
+          },
+        });
+      }
     }
-
-    const parts = timeStr.split(':');
-    let hour = parseInt(parts[0], 10);
-    let minute = parts.length > 1 ? parseInt(parts[1], 10) : 0;
-
-    if (Number.isNaN(hour)) hour = 9;
-    if (Number.isNaN(minute)) minute = 0;
-
-    // Saatleri 0-23, dakikaları 0-59 aralığında tutalim
-    hour = Math.max(0, Math.min(23, hour));
-    minute = Math.max(0, Math.min(59, minute));
-
-    const msg = GREETING_MESSAGES[i] || GREETING_MESSAGES[0];
-
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: msg.title,
-        body: msg.body,
-        data: { screen: 'Chat' },
-        sound: true,
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour,
-        minute,
-      },
-    });
   }
 }
 

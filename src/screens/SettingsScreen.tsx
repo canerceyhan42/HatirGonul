@@ -15,34 +15,34 @@ import { LinearGradient } from 'expo-linear-gradient';
 import {
   getUserName,
   saveUserName,
-  getNotificationTimes,
-  saveNotificationTimes,
+  saveNotificationEnabled,
+  getNotificationEnabled,
   clearAllData,
 } from '../services/StorageService';
 import {
   requestNotificationPermissions,
-  scheduleDailyNotifications,
+  scheduleRandomNotifications,
   cancelAllNotifications,
 } from '../services/NotificationService';
 import { Colors, Gradients, Spacing, BorderRadius } from '../theme/colors';
-
-const DEFAULT_TIMES = ['09:00', '13:00', '19:00'];
 
 export function SettingsScreen() {
   const [userName, setUserName] = useState('');
   const [nameInput, setNameInput] = useState('');
   const [notifEnabled, setNotifEnabled] = useState(true);
-  const [notifTimes, setNotifTimes] = useState<string[]>(DEFAULT_TIMES);
 
   useEffect(() => {
     loadSettings();
   }, []);
 
   const loadSettings = async () => {
-    const [name, times] = await Promise.all([getUserName(), getNotificationTimes()]);
+    const [name, enabled] = await Promise.all([
+      getUserName(),
+      getNotificationEnabled(),
+    ]);
     setUserName(name);
     setNameInput(name);
-    setNotifTimes(times);
+    setNotifEnabled(enabled);
   };
 
   const handleSaveName = async () => {
@@ -54,32 +54,20 @@ export function SettingsScreen() {
 
   const handleNotifToggle = async (value: boolean) => {
     setNotifEnabled(value);
+    await saveNotificationEnabled(value);
     if (value) {
       const granted = await requestNotificationPermissions();
       if (granted) {
-        await scheduleDailyNotifications(notifTimes);
-        Alert.alert('🔔 Bildirimler açıldı', 'Seçilen saatlerde hatırlatma alacaksın.');
+        await scheduleRandomNotifications();
+        Alert.alert('🔔 Bildirimler açıldı', 'Gün içinde sana rastgele hatırlatmalar göndereceğim.');
       } else {
         setNotifEnabled(false);
+        await saveNotificationEnabled(false);
         Alert.alert('Bildirim izni', 'Lütfen ayarlardan bildirim iznini ver.');
       }
     } else {
       await cancelAllNotifications();
     }
-  };
-
-  const handleTimeChange = (index: number, value: string) => {
-    const newTimes = [...notifTimes];
-    newTimes[index] = value;
-    setNotifTimes(newTimes);
-  };
-
-  const handleSaveTimes = async () => {
-    await saveNotificationTimes(notifTimes);
-    if (notifEnabled) {
-      await scheduleDailyNotifications(notifTimes);
-    }
-    Alert.alert('✅ Bildirim saatleri güncellendi');
   };
 
   const handleClearData = () => {
@@ -95,7 +83,6 @@ export function SettingsScreen() {
             await clearAllData();
             setUserName('');
             setNameInput('');
-            setNotifTimes(DEFAULT_TIMES);
             Alert.alert('🗑️ Temizlendi', 'Tüm veriler silindi.');
           },
         },
@@ -147,7 +134,7 @@ export function SettingsScreen() {
                 <View>
                   <Text style={styles.label}>Günlük Hatırlatmalar</Text>
                   <Text style={styles.hint}>
-                    Gün içinde hal hatır bildirimleri
+                    Gün içinde rastgele zamanlarda hal hatır sorulur
                   </Text>
                 </View>
                 <Switch
@@ -157,36 +144,6 @@ export function SettingsScreen() {
                   thumbColor={notifEnabled ? Colors.primaryLight : Colors.textMuted}
                 />
               </View>
-
-              {notifEnabled && (
-                <>
-                  <View style={styles.divider} />
-                  <Text style={styles.label}>Bildirim Saatleri</Text>
-                  <Text style={styles.hint}>Saat formatı: SS:DD</Text>
-                  {notifTimes.map((time, i) => (
-                    <View key={i} style={styles.timeRow}>
-                      <Text style={styles.timeLabel}>
-                        {i === 0 ? '☀️ Sabah' : i === 1 ? '🌤 Öğle' : '🌙 Akşam'}
-                      </Text>
-                      <TextInput
-                        style={styles.timeInput}
-                        value={time}
-                        onChangeText={(v) => handleTimeChange(i, v)}
-                        placeholder="09:00"
-                        placeholderTextColor={Colors.textMuted}
-                        keyboardType="numbers-and-punctuation"
-                        maxLength={5}
-                      />
-                    </View>
-                  ))}
-                  <TouchableOpacity
-                    style={styles.updateTimesBtn}
-                    onPress={handleSaveTimes}
-                  >
-                    <Text style={styles.updateTimesBtnText}>Saatleri Güncelle</Text>
-                  </TouchableOpacity>
-                </>
-              )}
             </View>
           </View>
 
